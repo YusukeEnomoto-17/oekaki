@@ -13,15 +13,14 @@
     <style>
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
-            /* Disable default touch actions like scrolling on the canvas container */
             touch-action: none;
-            overflow: hidden; /* Prevent scrolling of the whole page */
+            overflow: hidden;
         }
         #canvasContainer {
             width: 100%;
-            height: 60vh; /* Adjust height as needed */
+            height: 60vh;
             position: relative;
-            overflow: hidden; /* This is crucial for panning and zooming */
+            overflow: hidden;
         }
         #drawingCanvas {
             position: absolute;
@@ -29,7 +28,6 @@
             left: 0;
             cursor: crosshair;
         }
-        /* Custom styles for the brush size slider */
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
             width: 24px; height: 24px;
@@ -43,12 +41,17 @@
             cursor: pointer; border: 2px solid white;
             box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
-        /* Style for active tool button */
         .tool-active {
             transform: scale(1.1);
-            background-color: #f472b6 !important; /* Use a distinct color for active tool */
+            background-color: #f472b6 !important;
             color: white !important;
             box-shadow: 0 0 15px rgba(244, 114, 182, 0.7);
+        }
+        /* Style for disabled buttons */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
         }
     </style>
 </head>
@@ -66,16 +69,17 @@
             <!-- Tool Buttons -->
             <button id="drawBtn" class="tool-active px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">✏️</button>
             <button id="panBtn" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🖐️</button>
-            <!-- Eraser icon changed to be more intuitive -->
             <button id="eraserBtn" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🧼</button>
             
-            <!-- Color Picker -->
+            <!-- Undo/Redo Buttons -->
+            <button id="undoBtn" title="元に戻す" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↩️</button>
+            <button id="redoBtn" title="やり直し" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↪️</button>
+
+            <!-- Color and Brush -->
             <div class="flex items-center gap-2">
                 <label for="colorPicker" class="text-md text-pink-700 font-semibold">🎨</label>
                 <input type="color" id="colorPicker" value="#f472b6" class="w-10 h-10 p-1 bg-white rounded-full cursor-pointer border-2 border-white shadow-md">
             </div>
-            
-            <!-- Brush Size -->
             <div class="flex items-center gap-2">
                 <label for="brushSize" class="text-md text-pink-700 font-semibold">太さ</label>
                 <input type="range" id="brushSize" min="1" max="100" value="5" class="w-24 sm:w-32 h-3 bg-white rounded-full appearance-none cursor-pointer">
@@ -83,12 +87,10 @@
             </div>
         </div>
 
-        <!-- Canvas Container -->
         <div id="canvasContainer" class="w-full rounded-2xl border-4 border-dashed border-pink-200 bg-white flex-grow">
             <canvas id="drawingCanvas"></canvas>
         </div>
 
-        <!-- Action Buttons -->
         <div class="flex justify-center items-center gap-2 sm:gap-4 mt-3">
             <button id="zoomOutBtn" class="px-4 py-2 bg-purple-400 text-white font-bold rounded-xl shadow-lg hover:bg-purple-500 transition-transform transform hover:scale-105">-</button>
             <span id="zoomLevel" class="text-purple-700 font-bold">100%</span>
@@ -115,18 +117,23 @@
         const drawBtn = document.getElementById('drawBtn');
         const panBtn = document.getElementById('panBtn');
         const eraserBtn = document.getElementById('eraserBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
         const toolBtns = [drawBtn, panBtn, eraserBtn];
 
         // --- State Variables ---
         let isDrawing = false;
         let isPanning = false;
-        let currentTool = 'draw'; // 'draw', 'pan', 'eraser'
+        let currentTool = 'draw';
         let lastPos = { x: 0, y: 0 };
-        let drawingHistory = []; // To store all drawing paths for redraw
+        
+        // --- History for Undo/Redo ---
+        let drawingHistory = [];
+        let redoHistory = [];
 
         // --- Transformation State ---
         let scale = 1.0;
-        let origin = { x: 0, y: 0 }; // Pan offset
+        let origin = { x: 0, y: 0 };
 
         // --- Canvas Setup ---
         function resizeCanvas() {
@@ -139,15 +146,10 @@
         // --- Core Drawing and Transformation Functions ---
         function redrawCanvas() {
             ctx.save();
-            // Clear canvas with the real background color
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Apply transformations (pan and zoom)
             ctx.translate(origin.x, origin.y);
             ctx.scale(scale, scale);
-
-            // Redraw all paths from history
             drawingHistory.forEach(path => {
                 ctx.strokeStyle = path.color;
                 ctx.lineWidth = path.lineWidth;
@@ -158,11 +160,9 @@
                 path.points.forEach(point => ctx.lineTo(point.x, point.y));
                 ctx.stroke();
             });
-
             ctx.restore();
         }
         
-        // --- Coordinate Transformation ---
         function getTransformedPoint(x, y) {
             return {
                 x: (x - origin.x) / scale,
@@ -178,34 +178,40 @@
 
             if (currentTool === 'pan') {
                 isPanning = true;
-            } else { // 'draw' or 'eraser'
+            } else {
                 isDrawing = true;
                 const transformedPos = getTransformedPoint(startPos.x, startPos.y);
                 drawingHistory.push({
                     color: currentTool === 'eraser' ? '#FFFFFF' : colorPicker.value,
-                    lineWidth: brushSizeSlider.value / scale, // Scale linewidth too
+                    lineWidth: brushSizeSlider.value / scale,
                     points: [transformedPos]
                 });
+                // When a new line is drawn, the redo history is cleared
+                redoHistory = [];
+                updateUndoRedoButtons();
             }
         }
 
         function handlePointerMove(e) {
             e.preventDefault();
+            if (!isDrawing && !isPanning) return;
             const currentPos = getEventPos(e);
 
             if (isPanning) {
                 origin.x += currentPos.x - lastPos.x;
                 origin.y += currentPos.y - lastPos.y;
                 lastPos = { x: currentPos.x, y: currentPos.y };
-                redrawCanvas();
             } else if (isDrawing) {
                 const transformedPos = getTransformedPoint(currentPos.x, currentPos.y);
                 drawingHistory[drawingHistory.length - 1].points.push(transformedPos);
-                redrawCanvas();
             }
+            redrawCanvas();
         }
 
         function handlePointerUp(e) {
+            if (isDrawing) {
+                saveDrawing(); // Save after finishing a line
+            }
             isDrawing = false;
             isPanning = false;
         }
@@ -214,139 +220,97 @@
         function handleZoom(delta, centerX, centerY) {
             const point = getTransformedPoint(centerX, centerY);
             const newScale = Math.max(0.1, Math.min(10, scale * delta));
-            
             origin.x = centerX - point.x * newScale;
             origin.y = centerY - point.y * newScale;
-            
             scale = newScale;
             updateZoomLevel();
             redrawCanvas();
         }
 
-        // Mouse Wheel Zoom
-        canvasContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const rect = canvasContainer.getBoundingClientRect();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1; // Zoom factor
-            handleZoom(delta, e.clientX - rect.left, e.clientY - rect.top);
-        });
+        // --- Undo/Redo Logic ---
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = drawingHistory.length === 0;
+            redoBtn.disabled = redoHistory.length === 0;
+        }
 
-        // Pinch Zoom for Touch Devices
-        let lastTouchDistance = 0;
-        canvasContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                isDrawing = false; isPanning = false; // Stop other actions
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                const distance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
-                const rect = canvasContainer.getBoundingClientRect();
-                const centerX = ((touch1.clientX + touch2.clientX) / 2) - rect.left;
-                const centerY = ((touch1.clientY + touch2.clientY) / 2) - rect.top;
-
-                if (lastTouchDistance > 0) {
-                    const delta = distance / lastTouchDistance;
-                    handleZoom(delta, centerX, centerY);
-                }
-                lastTouchDistance = distance;
+        undoBtn.addEventListener('click', () => {
+            if (drawingHistory.length > 0) {
+                redoHistory.push(drawingHistory.pop());
+                updateUndoRedoButtons();
+                redrawCanvas();
+                saveDrawing();
             }
         });
-        canvasContainer.addEventListener('touchend', (e) => {
-            lastTouchDistance = 0;
+
+        redoBtn.addEventListener('click', () => {
+            if (redoHistory.length > 0) {
+                drawingHistory.push(redoHistory.pop());
+                updateUndoRedoButtons();
+                redrawCanvas();
+                saveDrawing();
+            }
         });
 
-        // --- UI Button Listeners ---
-        function updateZoomLevel() {
-            zoomLevel.textContent = `${Math.round(scale * 100)}%`;
+        // --- Local Storage for Saving/Loading ---
+        function saveDrawing() {
+            try {
+                const dataStr = JSON.stringify(drawingHistory);
+                localStorage.setItem('oekaki-app-drawing', dataStr);
+            } catch (e) {
+                console.error("Could not save drawing:", e);
+            }
         }
-        zoomInBtn.addEventListener('click', () => handleZoom(1.2, canvas.width / 2, canvas.height / 2));
-        zoomOutBtn.addEventListener('click', () => handleZoom(0.8, canvas.width / 2, canvas.height / 2));
 
-        function setActiveTool(tool) {
-            currentTool = tool;
-            toolBtns.forEach(btn => btn.classList.remove('tool-active'));
-            document.getElementById(`${tool}Btn`).classList.add('tool-active');
-            canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+        function loadDrawing() {
+            try {
+                const savedData = localStorage.getItem('oekaki-app-drawing');
+                if (savedData) {
+                    drawingHistory = JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error("Could not load drawing:", e);
+                drawingHistory = []; // Start fresh if data is corrupted
+            }
         }
-        drawBtn.addEventListener('click', () => setActiveTool('draw'));
-        panBtn.addEventListener('click', () => setActiveTool('pan'));
-        eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
 
-        brushSizeSlider.addEventListener('input', (e) => {
-            brushSizeValue.textContent = e.target.value;
-        });
-
+        // --- Other UI Listeners ---
         clearBtn.addEventListener('click', () => {
             drawingHistory = [];
+            redoHistory = [];
             scale = 1.0;
             origin = { x: 0, y: 0 };
             updateZoomLevel();
+            updateUndoRedoButtons();
             redrawCanvas();
-        });
-
-        downloadBtn.addEventListener('click', () => {
-            // Create a temporary canvas to render the full drawing
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            // Find bounds of the drawing
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            if (drawingHistory.length === 0) return;
-
-            drawingHistory.forEach(path => {
-                path.points.forEach(p => {
-                    minX = Math.min(minX, p.x);
-                    minY = Math.min(minY, p.y);
-                    maxX = Math.max(maxX, p.x);
-                    maxY = Math.max(maxY, p.y);
-                });
-            });
-
-            const padding = 20;
-            const width = maxX - minX + padding * 2;
-            const height = maxY - minY + padding * 2;
-            
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-
-            // Redraw on the temp canvas at 100% scale
-            tempCtx.translate(-minX + padding, -minY + padding);
-            drawingHistory.forEach(path => {
-                tempCtx.strokeStyle = path.color;
-                tempCtx.lineWidth = path.lineWidth;
-                tempCtx.lineCap = 'round';
-                tempCtx.lineJoin = 'round';
-                tempCtx.beginPath();
-                tempCtx.moveTo(path.points[0].x, path.points[0].y);
-                path.points.forEach(point => tempCtx.lineTo(point.x, point.y));
-                tempCtx.stroke();
-            });
-
-            // Trigger download
-            const link = document.createElement('a');
-            link.download = 'わたしのえ.png';
-            link.href = tempCanvas.toDataURL('image/png');
-            link.click();
+            saveDrawing(); // Save the cleared state
         });
         
-        // --- Helper to get event position ---
-        function getEventPos(e) {
-            const rect = canvasContainer.getBoundingClientRect();
-            const touch = e.touches ? e.touches[0] : e;
-            return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-        }
-
-        // --- Pointer Event Listeners (for mouse and touch) ---
+        // (Other listeners like zoom, tool selection, download remain mostly the same)
+        canvasContainer.addEventListener('wheel', (e) => { e.preventDefault(); const rect = canvasContainer.getBoundingClientRect(); handleZoom(e.deltaY > 0 ? 0.9 : 1.1, e.clientX - rect.left, e.clientY - rect.top); });
+        let lastTouchDistance = 0;
+        canvasContainer.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { isDrawing = false; isPanning = false; const t1 = e.touches[0], t2 = e.touches[1]; const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); const rect = canvasContainer.getBoundingClientRect(); const cx = ((t1.clientX + t2.clientX) / 2) - rect.left; const cy = ((t1.clientY + t2.clientY) / 2) - rect.top; if (lastTouchDistance > 0) { handleZoom(dist / lastTouchDistance, cx, cy); } lastTouchDistance = dist; } });
+        canvasContainer.addEventListener('touchend', (e) => { lastTouchDistance = 0; });
+        function updateZoomLevel() { zoomLevel.textContent = `${Math.round(scale * 100)}%`; }
+        zoomInBtn.addEventListener('click', () => handleZoom(1.2, canvas.width / 2, canvas.height / 2));
+        zoomOutBtn.addEventListener('click', () => handleZoom(0.8, canvas.width / 2, canvas.height / 2));
+        function setActiveTool(tool) { currentTool = tool; toolBtns.forEach(btn => btn.classList.remove('tool-active')); document.getElementById(`${tool}Btn`).classList.add('tool-active'); canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair'; }
+        drawBtn.addEventListener('click', () => setActiveTool('draw'));
+        panBtn.addEventListener('click', () => setActiveTool('pan'));
+        eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
+        brushSizeSlider.addEventListener('input', (e) => { brushSizeValue.textContent = e.target.value; });
+        downloadBtn.addEventListener('click', () => { const tempCanvas = document.createElement('canvas'); const tempCtx = tempCanvas.getContext('2d'); if (drawingHistory.length === 0) return; let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity; drawingHistory.forEach(path => { path.points.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }); }); const padding = 20; const width = maxX - minX + padding * 2; const height = maxY - minY + padding * 2; tempCanvas.width = width; tempCanvas.height = height; tempCtx.translate(-minX + padding, -minY + padding); drawingHistory.forEach(path => { tempCtx.strokeStyle = path.color; tempCtx.lineWidth = path.lineWidth; tempCtx.lineCap = 'round'; tempCtx.lineJoin = 'round'; tempCtx.beginPath(); tempCtx.moveTo(path.points[0].x, path.points[0].y); path.points.forEach(point => tempCtx.lineTo(point.x, point.y)); tempCtx.stroke(); }); const link = document.createElement('a'); link.download = 'わたしのえ.png'; link.href = tempCanvas.toDataURL('image/png'); link.click(); });
+        function getEventPos(e) { const rect = canvasContainer.getBoundingClientRect(); const touch = e.touches ? e.touches[0] : e; return { x: touch.clientX - rect.left, y: touch.clientY - rect.top }; }
         canvasContainer.addEventListener('mousedown', handlePointerDown);
         canvasContainer.addEventListener('mousemove', handlePointerMove);
-        window.addEventListener('mouseup', handlePointerUp); // Listen on window to catch mouseup outside canvas
-
+        window.addEventListener('mouseup', handlePointerUp);
         canvasContainer.addEventListener('touchstart', handlePointerDown);
         canvasContainer.addEventListener('touchmove', handlePointerMove);
         window.addEventListener('touchend', handlePointerUp);
 
-
         // --- Initial Setup ---
-        resizeCanvas();
+        loadDrawing(); // Load saved drawing first
+        resizeCanvas(); // Then resize canvas (which also redraws)
+        updateUndoRedoButtons(); // Set initial state of buttons
         setActiveTool('draw');
         window.addEventListener('resize', resizeCanvas);
     });
