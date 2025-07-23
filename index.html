@@ -18,7 +18,6 @@
         }
         #canvasContainer {
             width: 100%;
-            height: 60vh;
             position: relative;
             overflow: hidden;
         }
@@ -47,7 +46,6 @@
             color: white !important;
             box-shadow: 0 0 15px rgba(244, 114, 182, 0.7);
         }
-        /* Style for disabled buttons */
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -55,48 +53,59 @@
         }
     </style>
 </head>
-<body class="bg-pink-50 flex flex-col items-center justify-center min-h-screen p-2 sm:p-4">
+<body class="bg-pink-50 flex items-center justify-center h-screen">
 
-    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-lg p-3 sm:p-6 lg:p-8 flex flex-col h-[95vh]">
+    <!-- Main container with a robust flex layout -->
+    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-lg p-3 sm:p-4 flex flex-col h-full max-h-screen sm:max-h-[95vh]">
         
-        <header class="text-center mb-3">
-            <h1 class="text-3xl sm:text-4xl font-bold text-pink-500 tracking-wider">
-                🎀 おえかきアプリ 🎀
-            </h1>
-        </header>
+        <!-- All controls are at the top -->
+        <div class="controls-area flex-shrink-0">
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 p-3 bg-pink-100 rounded-2xl mb-3">
+                <!-- Tool Buttons -->
+                <button id="drawBtn" title="えんぴつ" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">✏️</button>
+                <button id="panBtn" title="うごかす" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🖐️</button>
+                <button id="eraserBtn" title="けしゴム" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🧼</button>
+                
+                <!-- Undo/Redo Buttons -->
+                <button id="undoBtn" title="もどす" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↩️</button>
+                <button id="redoBtn" title="やりなおし" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↪️</button>
 
-        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 p-3 bg-pink-100 rounded-2xl mb-3">
-            <!-- Tool Buttons -->
-            <button id="drawBtn" class="tool-active px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">✏️</button>
-            <button id="panBtn" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🖐️</button>
-            <button id="eraserBtn" class="px-3 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform">🧼</button>
-            
-            <!-- Undo/Redo Buttons -->
-            <button id="undoBtn" title="元に戻す" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↩️</button>
-            <button id="redoBtn" title="やり直し" class="px-3 py-2 bg-gray-300 text-white rounded-xl shadow-md hover:bg-gray-400 transition-transform transform">↪️</button>
-
-            <!-- Color and Brush -->
-            <div class="flex items-center gap-2">
-                <label for="colorPicker" class="text-md text-pink-700 font-semibold">🎨</label>
-                <input type="color" id="colorPicker" value="#f472b6" class="w-10 h-10 p-1 bg-white rounded-full cursor-pointer border-2 border-white shadow-md">
-            </div>
-            <div class="flex items-center gap-2">
-                <label for="brushSize" class="text-md text-pink-700 font-semibold">太さ</label>
-                <input type="range" id="brushSize" min="1" max="100" value="5" class="w-24 sm:w-32 h-3 bg-white rounded-full appearance-none cursor-pointer">
-                <span id="brushSizeValue" class="text-md text-pink-700 font-bold w-8 text-center">5</span>
+                <!-- Color and Brush -->
+                <div class="flex items-center gap-2">
+                    <label for="colorPicker" class="text-md text-pink-700 font-semibold" title="いろ">🎨</label>
+                    <input type="color" id="colorPicker" value="#f472b6" class="w-10 h-10 p-1 bg-white rounded-full cursor-pointer border-2 border-white shadow-md">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="brushSize" class="text-md text-pink-700 font-semibold">太さ</label>
+                    <input type="range" id="brushSize" min="1" max="100" value="5" class="w-24 sm:w-32 h-3 bg-white rounded-full appearance-none cursor-pointer">
+                    <span id="brushSizeValue" class="text-md text-pink-700 font-bold w-8 text-center">5</span>
+                </div>
+                
+                <!-- Zoom, Clear, Download Buttons -->
+                <div class="flex items-center gap-2">
+                    <button id="zoomOutBtn" title="ちいさく" class="px-3 py-2 bg-purple-400 text-white font-bold rounded-xl shadow-lg hover:bg-purple-500 transition-transform transform hover:scale-105">-</button>
+                    <span id="zoomLevel" class="text-purple-700 font-bold w-14 text-center">100%</span>
+                    <button id="zoomInBtn" title="おおきく" class="px-3 py-2 bg-purple-400 text-white font-bold rounded-xl shadow-lg hover:bg-purple-500 transition-transform transform hover:scale-105">+</button>
+                </div>
+                <button id="clearBtn" class="px-4 py-2 bg-yellow-300 text-yellow-800 font-bold rounded-xl shadow-lg hover:bg-yellow-400 transition-transform transform hover:scale-105">ぜんぶけす</button>
+                <button id="downloadBtn" class="px-4 py-2 bg-green-400 text-white font-bold rounded-xl shadow-lg hover:bg-green-500 transition-transform transform hover:scale-105">ほぞん</button>
             </div>
         </div>
 
-        <div id="canvasContainer" class="w-full rounded-2xl border-4 border-dashed border-pink-200 bg-white flex-grow">
+        <!-- Canvas container grows to fill remaining space -->
+        <div id="canvasContainer" class="w-full rounded-2xl border-4 border-dashed border-pink-200 bg-white flex-grow min-h-0">
             <canvas id="drawingCanvas"></canvas>
         </div>
+    </div>
 
-        <div class="flex justify-center items-center gap-2 sm:gap-4 mt-3">
-            <button id="zoomOutBtn" class="px-4 py-2 bg-purple-400 text-white font-bold rounded-xl shadow-lg hover:bg-purple-500 transition-transform transform hover:scale-105">-</button>
-            <span id="zoomLevel" class="text-purple-700 font-bold">100%</span>
-            <button id="zoomInBtn" class="px-4 py-2 bg-purple-400 text-white font-bold rounded-xl shadow-lg hover:bg-purple-500 transition-transform transform hover:scale-105">+</button>
-            <button id="clearBtn" class="px-4 py-2 bg-yellow-300 text-yellow-800 font-bold rounded-xl shadow-lg hover:bg-yellow-400 transition-transform transform hover:scale-105">ぜんぶけす</button>
-            <button id="downloadBtn" class="px-4 py-2 bg-green-400 text-white font-bold rounded-xl shadow-lg hover:bg-green-500 transition-transform transform hover:scale-105">ほぞん</button>
+    <!-- Confirmation Modal for Clearing Canvas -->
+    <div id="clearConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 shadow-lg text-center max-w-sm">
+            <p class="text-lg font-semibold text-gray-800 mb-4">ほんとうにぜんぶけしますか？</p>
+            <div class="flex justify-center gap-4">
+                <button id="cancelClearBtn" class="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">いいえ</button>
+                <button id="confirmClearBtn" class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">はい</button>
+            </div>
         </div>
     </div>
 
@@ -120,31 +129,26 @@
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
         const toolBtns = [drawBtn, panBtn, eraserBtn];
+        const clearConfirmModal = document.getElementById('clearConfirmModal');
+        const confirmClearBtn = document.getElementById('confirmClearBtn');
+        const cancelClearBtn = document.getElementById('cancelClearBtn');
 
         // --- State Variables ---
-        let isDrawing = false;
-        let isPanning = false;
-        let currentTool = 'draw';
+        let isDrawing = false, isPanning = false, currentTool = 'draw';
         let lastPos = { x: 0, y: 0 };
-        
-        // --- History for Undo/Redo ---
-        let drawingHistory = [];
-        let redoHistory = [];
+        let drawingHistory = [], redoHistory = [];
+        let scale = 1.0, origin = { x: 0, y: 0 };
+        let lastTouchDistance = 0;
 
-        // --- Transformation State ---
-        let scale = 1.0;
-        let origin = { x: 0, y: 0 };
-
-        // --- Canvas Setup ---
-        function resizeCanvas() {
+        // --- Core Functions ---
+        const resizeCanvas = () => {
             const rect = canvasContainer.getBoundingClientRect();
             canvas.width = rect.width;
             canvas.height = rect.height;
             redrawCanvas();
-        }
+        };
 
-        // --- Core Drawing and Transformation Functions ---
-        function redrawCanvas() {
+        const redrawCanvas = () => {
             ctx.save();
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -161,21 +165,46 @@
                 ctx.stroke();
             });
             ctx.restore();
-        }
-        
-        function getTransformedPoint(x, y) {
-            return {
-                x: (x - origin.x) / scale,
-                y: (y - origin.y) / scale
-            };
-        }
+        };
 
-        // --- Event Handlers ---
-        function handlePointerDown(e) {
+        const getTransformedPoint = (x, y) => ({ x: (x - origin.x) / scale, y: (y - origin.y) / scale });
+        const getEventPos = (e) => {
+            const rect = canvasContainer.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+        };
+
+        const handleZoom = (delta, centerX, centerY) => {
+            const point = getTransformedPoint(centerX, centerY);
+            const newScale = Math.max(0.1, Math.min(10, scale * delta));
+            origin.x = centerX - point.x * newScale;
+            origin.y = centerY - point.y * newScale;
+            scale = newScale;
+            zoomLevel.textContent = `${Math.round(scale * 100)}%`;
+            redrawCanvas();
+        };
+        
+        const updateUndoRedoButtons = () => {
+            undoBtn.disabled = drawingHistory.length === 0;
+            redoBtn.disabled = redoHistory.length === 0;
+        };
+
+        const saveDrawing = () => {
+            try { localStorage.setItem('oekaki-app-drawing', JSON.stringify(drawingHistory)); } catch (e) { console.error("Could not save drawing:", e); }
+        };
+
+        const loadDrawing = () => {
+            try {
+                const savedData = localStorage.getItem('oekaki-app-drawing');
+                if (savedData) { drawingHistory = JSON.parse(savedData); }
+            } catch (e) { console.error("Could not load drawing:", e); drawingHistory = []; }
+        };
+
+        // --- Pointer Event Handlers ---
+        const handlePointerDown = (e) => {
             e.preventDefault();
             const startPos = getEventPos(e);
             lastPos = { x: startPos.x, y: startPos.y };
-
             if (currentTool === 'pan') {
                 isPanning = true;
             } else {
@@ -186,133 +215,130 @@
                     lineWidth: brushSizeSlider.value / scale,
                     points: [transformedPos]
                 });
-                // When a new line is drawn, the redo history is cleared
                 redoHistory = [];
                 updateUndoRedoButtons();
             }
-        }
+        };
 
-        function handlePointerMove(e) {
+        const handlePointerMove = (e) => {
             e.preventDefault();
-            if (!isDrawing && !isPanning) return;
-            const currentPos = getEventPos(e);
-
             if (isPanning) {
+                const currentPos = getEventPos(e);
                 origin.x += currentPos.x - lastPos.x;
                 origin.y += currentPos.y - lastPos.y;
                 lastPos = { x: currentPos.x, y: currentPos.y };
+                redrawCanvas();
             } else if (isDrawing) {
+                const currentPos = getEventPos(e);
                 const transformedPos = getTransformedPoint(currentPos.x, currentPos.y);
                 drawingHistory[drawingHistory.length - 1].points.push(transformedPos);
-            }
-            redrawCanvas();
-        }
-
-        function handlePointerUp(e) {
-            if (isDrawing) {
-                saveDrawing(); // Save after finishing a line
-            }
-            isDrawing = false;
-            isPanning = false;
-        }
-
-        // --- Zoom Logic ---
-        function handleZoom(delta, centerX, centerY) {
-            const point = getTransformedPoint(centerX, centerY);
-            const newScale = Math.max(0.1, Math.min(10, scale * delta));
-            origin.x = centerX - point.x * newScale;
-            origin.y = centerY - point.y * newScale;
-            scale = newScale;
-            updateZoomLevel();
-            redrawCanvas();
-        }
-
-        // --- Undo/Redo Logic ---
-        function updateUndoRedoButtons() {
-            undoBtn.disabled = drawingHistory.length === 0;
-            redoBtn.disabled = redoHistory.length === 0;
-        }
-
-        undoBtn.addEventListener('click', () => {
-            if (drawingHistory.length > 0) {
-                redoHistory.push(drawingHistory.pop());
-                updateUndoRedoButtons();
                 redrawCanvas();
-                saveDrawing();
             }
-        });
+        };
 
-        redoBtn.addEventListener('click', () => {
-            if (redoHistory.length > 0) {
-                drawingHistory.push(redoHistory.pop());
-                updateUndoRedoButtons();
-                redrawCanvas();
-                saveDrawing();
-            }
-        });
-
-        // --- Local Storage for Saving/Loading ---
-        function saveDrawing() {
-            try {
-                const dataStr = JSON.stringify(drawingHistory);
-                localStorage.setItem('oekaki-app-drawing', dataStr);
-            } catch (e) {
-                console.error("Could not save drawing:", e);
-            }
-        }
-
-        function loadDrawing() {
-            try {
-                const savedData = localStorage.getItem('oekaki-app-drawing');
-                if (savedData) {
-                    drawingHistory = JSON.parse(savedData);
-                }
-            } catch (e) {
-                console.error("Could not load drawing:", e);
-                drawingHistory = []; // Start fresh if data is corrupted
-            }
-        }
-
-        // --- Other UI Listeners ---
-        clearBtn.addEventListener('click', () => {
-            drawingHistory = [];
-            redoHistory = [];
-            scale = 1.0;
-            origin = { x: 0, y: 0 };
-            updateZoomLevel();
-            updateUndoRedoButtons();
-            redrawCanvas();
-            saveDrawing(); // Save the cleared state
-        });
+        const handlePointerUp = () => {
+            if (isDrawing) { saveDrawing(); }
+            isDrawing = false; isPanning = false;
+        };
         
-        // (Other listeners like zoom, tool selection, download remain mostly the same)
-        canvasContainer.addEventListener('wheel', (e) => { e.preventDefault(); const rect = canvasContainer.getBoundingClientRect(); handleZoom(e.deltaY > 0 ? 0.9 : 1.1, e.clientX - rect.left, e.clientY - rect.top); });
-        let lastTouchDistance = 0;
-        canvasContainer.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { isDrawing = false; isPanning = false; const t1 = e.touches[0], t2 = e.touches[1]; const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); const rect = canvasContainer.getBoundingClientRect(); const cx = ((t1.clientX + t2.clientX) / 2) - rect.left; const cy = ((t1.clientY + t2.clientY) / 2) - rect.top; if (lastTouchDistance > 0) { handleZoom(dist / lastTouchDistance, cx, cy); } lastTouchDistance = dist; } });
-        canvasContainer.addEventListener('touchend', (e) => { lastTouchDistance = 0; });
-        function updateZoomLevel() { zoomLevel.textContent = `${Math.round(scale * 100)}%`; }
-        zoomInBtn.addEventListener('click', () => handleZoom(1.2, canvas.width / 2, canvas.height / 2));
-        zoomOutBtn.addEventListener('click', () => handleZoom(0.8, canvas.width / 2, canvas.height / 2));
-        function setActiveTool(tool) { currentTool = tool; toolBtns.forEach(btn => btn.classList.remove('tool-active')); document.getElementById(`${tool}Btn`).classList.add('tool-active'); canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair'; }
-        drawBtn.addEventListener('click', () => setActiveTool('draw'));
-        panBtn.addEventListener('click', () => setActiveTool('pan'));
-        eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
-        brushSizeSlider.addEventListener('input', (e) => { brushSizeValue.textContent = e.target.value; });
-        downloadBtn.addEventListener('click', () => { const tempCanvas = document.createElement('canvas'); const tempCtx = tempCanvas.getContext('2d'); if (drawingHistory.length === 0) return; let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity; drawingHistory.forEach(path => { path.points.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }); }); const padding = 20; const width = maxX - minX + padding * 2; const height = maxY - minY + padding * 2; tempCanvas.width = width; tempCanvas.height = height; tempCtx.translate(-minX + padding, -minY + padding); drawingHistory.forEach(path => { tempCtx.strokeStyle = path.color; tempCtx.lineWidth = path.lineWidth; tempCtx.lineCap = 'round'; tempCtx.lineJoin = 'round'; tempCtx.beginPath(); tempCtx.moveTo(path.points[0].x, path.points[0].y); path.points.forEach(point => tempCtx.lineTo(point.x, point.y)); tempCtx.stroke(); }); const link = document.createElement('a'); link.download = 'わたしのえ.png'; link.href = tempCanvas.toDataURL('image/png'); link.click(); });
-        function getEventPos(e) { const rect = canvasContainer.getBoundingClientRect(); const touch = e.touches ? e.touches[0] : e; return { x: touch.clientX - rect.left, y: touch.clientY - rect.top }; }
-        canvasContainer.addEventListener('mousedown', handlePointerDown);
-        canvasContainer.addEventListener('mousemove', handlePointerMove);
-        window.addEventListener('mouseup', handlePointerUp);
-        canvasContainer.addEventListener('touchstart', handlePointerDown);
-        canvasContainer.addEventListener('touchmove', handlePointerMove);
-        window.addEventListener('touchend', handlePointerUp);
+        // --- Setup All Event Listeners ---
+        const setupEventListeners = () => {
+            canvasContainer.addEventListener('mousedown', handlePointerDown);
+            canvasContainer.addEventListener('mousemove', handlePointerMove);
+            window.addEventListener('mouseup', handlePointerUp);
+            canvasContainer.addEventListener('touchstart', handlePointerDown);
+            canvasContainer.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) { // Pinch zoom
+                    isDrawing = false; isPanning = false;
+                    const t1 = e.touches[0], t2 = e.touches[1];
+                    const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const cx = ((t1.clientX + t2.clientX) / 2) - rect.left;
+                    const cy = ((t1.clientY + t2.clientY) / 2) - rect.top;
+                    if (lastTouchDistance > 0) { handleZoom(dist / lastTouchDistance, cx, cy); }
+                    lastTouchDistance = dist;
+                } else { // Single touch drawing/panning
+                    handlePointerMove(e);
+                }
+            });
+            window.addEventListener('touchend', (e) => {
+                lastTouchDistance = 0;
+                handlePointerUp();
+            });
+            canvasContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = canvasContainer.getBoundingClientRect();
+                handleZoom(e.deltaY > 0 ? 0.9 : 1.1, e.clientX - rect.left, e.clientY - rect.top);
+            });
+
+            // Tool selection
+            const setActiveTool = (tool) => {
+                currentTool = tool;
+                toolBtns.forEach(btn => btn.classList.remove('tool-active'));
+                document.getElementById(`${tool}Btn`).classList.add('tool-active');
+                canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+            };
+            drawBtn.addEventListener('click', () => setActiveTool('draw'));
+            panBtn.addEventListener('click', () => setActiveTool('pan'));
+            eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
+            
+            // Undo/Redo
+            undoBtn.addEventListener('click', () => { if (drawingHistory.length > 0) { redoHistory.push(drawingHistory.pop()); updateUndoRedoButtons(); redrawCanvas(); saveDrawing(); } });
+            redoBtn.addEventListener('click', () => { if (redoHistory.length > 0) { drawingHistory.push(redoHistory.pop()); updateUndoRedoButtons(); redrawCanvas(); saveDrawing(); } });
+
+            // Other controls
+            brushSizeSlider.addEventListener('input', (e) => { brushSizeValue.textContent = e.target.value; });
+            zoomInBtn.addEventListener('click', () => handleZoom(1.2, canvas.width / 2, canvas.height / 2));
+            zoomOutBtn.addEventListener('click', () => handleZoom(0.8, canvas.width / 2, canvas.height / 2));
+            
+            // Clear with confirmation
+            clearBtn.addEventListener('click', () => { clearConfirmModal.classList.remove('hidden'); });
+            cancelClearBtn.addEventListener('click', () => { clearConfirmModal.classList.add('hidden'); });
+            confirmClearBtn.addEventListener('click', () => {
+                drawingHistory = []; redoHistory = []; scale = 1.0; origin = { x: 0, y: 0 };
+                updateUndoRedoButtons(); redrawCanvas(); saveDrawing();
+                zoomLevel.textContent = '100%';
+                clearConfirmModal.classList.add('hidden');
+            });
+            
+            // Download
+            downloadBtn.addEventListener('click', () => {
+                if (drawingHistory.length === 0) return;
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                drawingHistory.forEach(path => { path.points.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }); });
+                const padding = 20;
+                const width = maxX - minX + padding * 2;
+                const height = maxY - minY + padding * 2;
+                tempCanvas.width = width; tempCanvas.height = height;
+                tempCtx.fillStyle = '#FFFFFF'; tempCtx.fillRect(0, 0, width, height);
+                tempCtx.translate(-minX + padding, -minY + padding);
+                drawingHistory.forEach(path => {
+                    tempCtx.strokeStyle = path.color;
+                    tempCtx.lineWidth = path.lineWidth;
+                    tempCtx.lineCap = 'round';
+                    tempCtx.lineJoin = 'round';
+                    tempCtx.beginPath();
+                    tempCtx.moveTo(path.points[0].x, path.points[0].y);
+                    path.points.forEach(point => tempCtx.lineTo(point.x, point.y));
+                    tempCtx.stroke();
+                });
+                const link = document.createElement('a');
+                link.download = 'わたしのえ.png';
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+        };
 
         // --- Initial Setup ---
-        loadDrawing(); // Load saved drawing first
-        resizeCanvas(); // Then resize canvas (which also redraws)
-        updateUndoRedoButtons(); // Set initial state of buttons
-        setActiveTool('draw');
-        window.addEventListener('resize', resizeCanvas);
+        loadDrawing();
+        resizeCanvas();
+        updateUndoRedoButtons();
+        setupEventListeners();
+        drawBtn.click(); // Set initial tool
     });
     </script>
 </body>
