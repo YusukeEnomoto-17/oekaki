@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おえかきアプリ</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a cute font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply the cute font to the whole page */
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            touch-action: none; /* Disable default touch actions like scrolling on the canvas */
+        }
+        /* Custom styles for the brush size slider */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #f472b6; /* Pink color */
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #f472b6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="bg-pink-50 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Main container for the app -->
+    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-lg p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header with title -->
+        <header class="text-center mb-4">
+            <h1 class="text-4xl sm:text-5xl font-bold text-pink-500 tracking-wider">
+                🎀 おえかきアプリ 🎀
+            </h1>
+        </header>
+
+        <!-- Toolbar for drawing controls -->
+        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 p-4 bg-pink-100 rounded-2xl mb-4">
+            <!-- Color Picker -->
+            <div class="flex items-center gap-2">
+                <label for="colorPicker" class="text-lg text-pink-700 font-semibold">🎨 いろ</label>
+                <input type="color" id="colorPicker" value="#f472b6" class="w-12 h-12 p-1 bg-white rounded-full cursor-pointer border-2 border-white shadow-md">
+            </div>
+            
+            <!-- Brush Size Slider -->
+            <div class="flex items-center gap-2">
+                <label for="brushSize" class="text-lg text-pink-700 font-semibold">✏️ ふとさ</label>
+                <input type="range" id="brushSize" min="1" max="50" value="5" class="w-32 sm:w-40 h-3 bg-white rounded-full appearance-none cursor-pointer">
+                <span id="brushSizeValue" class="text-lg text-pink-700 font-bold w-8 text-center">5</span>
+            </div>
+
+            <!-- Eraser Button -->
+            <button id="eraserBtn" class="px-4 py-2 bg-blue-300 text-white rounded-xl shadow-md hover:bg-blue-400 transition-transform transform hover:scale-105">
+                ✨ けしゴム
+            </button>
+        </div>
+
+        <!-- Drawing Canvas -->
+        <canvas id="drawingCanvas" class="w-full h-auto bg-white rounded-2xl border-4 border-dashed border-pink-200 cursor-crosshair"></canvas>
+
+        <!-- Action Buttons: Clear and Download -->
+        <div class="flex justify-center gap-4 mt-4">
+            <button id="clearBtn" class="px-6 py-3 bg-yellow-300 text-yellow-800 font-bold rounded-xl shadow-lg hover:bg-yellow-400 transition-transform transform hover:scale-105">
+                🗑️ ぜんぶけす
+            </button>
+            <button id="downloadBtn" class="px-6 py-3 bg-green-400 text-white font-bold rounded-xl shadow-lg hover:bg-green-500 transition-transform transform hover:scale-105">
+                🖼️ ほぞんする
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the page to fully load before running the script
+        window.addEventListener('load', () => {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Get all the control elements
+            const colorPicker = document.getElementById('colorPicker');
+            const brushSizeSlider = document.getElementById('brushSize');
+            const brushSizeValue = document.getElementById('brushSizeValue');
+            const eraserBtn = document.getElementById('eraserBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            // --- Canvas Setup ---
+            // Set canvas size to match its display size for high-resolution drawing
+            // This prevents the drawing from looking blurry
+            const setCanvasSize = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+                // Redraw content if needed after resize, here we just set the style
+                ctx.lineCap = 'round'; // Makes line ends round
+                ctx.lineJoin = 'round'; // Makes line corners round
+                ctx.strokeStyle = colorPicker.value;
+                ctx.lineWidth = brushSizeSlider.value;
+            };
+
+            setCanvasSize();
+            // Adjust canvas size when the window is resized
+            window.addEventListener('resize', setCanvasSize);
+
+
+            // --- Drawing State ---
+            let isDrawing = false;
+            let isErasing = false;
+            let lastX = 0;
+            let lastY = 0;
+
+            // --- Drawing Functions ---
+            function startDrawing(e) {
+                isDrawing = true;
+                // Get coordinates relative to the canvas
+                const [x, y] = getCoords(e);
+                [lastX, lastY] = [x, y];
+            }
+
+            function draw(e) {
+                if (!isDrawing) return; // Stop the function if not drawing
+
+                const [x, y] = getCoords(e);
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                [lastX, lastY] = [x, y];
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            // Helper function to get correct coordinates for both mouse and touch events
+            function getCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                let x, y;
+                if (e.touches) { // For touch events
+                    x = e.touches[0].clientX - rect.left;
+                    y = e.touches[0].clientY - rect.top;
+                } else { // For mouse events
+                    x = e.clientX - rect.left;
+                    y = e.clientY - rect.top;
+                }
+                return [x, y];
+            }
+
+            // --- Event Listeners ---
+            
+            // Canvas drawing events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing); // Stop drawing if mouse leaves canvas
+
+            // Touch events for mobile devices
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent scrolling while drawing
+                startDrawing(e);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                draw(e);
+            });
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Control events
+            colorPicker.addEventListener('change', (e) => {
+                isErasing = false; // Turn off eraser when a new color is picked
+                ctx.strokeStyle = e.target.value;
+                eraserBtn.classList.remove('bg-pink-400', 'ring-4', 'ring-pink-200');
+                eraserBtn.classList.add('bg-blue-300');
+            });
+
+            brushSizeSlider.addEventListener('input', (e) => {
+                ctx.lineWidth = e.target.value;
+                brushSizeValue.textContent = e.target.value;
+            });
+
+            eraserBtn.addEventListener('click', () => {
+                isErasing = !isErasing; // Toggle eraser mode
+                if (isErasing) {
+                    // Set color to white (background color) for erasing
+                    ctx.strokeStyle = '#FFFFFF'; 
+                    // Highlight the eraser button to show it's active
+                    eraserBtn.classList.add('bg-pink-400', 'ring-4', 'ring-pink-200');
+                    eraserBtn.classList.remove('bg-blue-300');
+                } else {
+                    // Switch back to the selected color
+                    ctx.strokeStyle = colorPicker.value;
+                    eraserBtn.classList.remove('bg-pink-400', 'ring-4', 'ring-pink-200');
+                    eraserBtn.classList.add('bg-blue-300');
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                // Clear the entire canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'わたしのえ.png'; // Filename for the downloaded image
+                link.href = canvas.toDataURL('image/png'); // Convert canvas content to a data URL
+                link.click(); // Programmatically click the link to trigger the download
+            });
+        });
+    </script>
+</body>
+</html>
